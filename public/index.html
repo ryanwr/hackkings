@@ -9,12 +9,15 @@
       }
 
       body {
-        margin: 1em auto;
+        display: flex;
+        min-height: 100vh;
+        flex-direction: column;
+        margin: 0 auto;
         max-width: 40em;
         line-height: 1.6;
         font: 1.2em serif;
         color: #444;
-        padding:0 .62em;
+        padding: 1em .62em;
       }
 
       header {
@@ -33,9 +36,11 @@
         color: #777;
       }
 
+      main {
+        flex: 1;
+      }
+
       footer {
-        position: absolute;
-        bottom: 0;
         text-align: center;
         color: #777;
       }
@@ -115,15 +120,18 @@
     <header>
       <h1>HackKings Ticket Sniper</h1>
     </header>
-    <h2 class="status">Connecting to server...</h2>
 
-    <p>
-      The server will start polling for tickets approximately 5 minutes before the tickets are due to be released.
-      There are no guarantees as this hasn't been tested. <b>It will pick the first ticket type available so check to make
-      sure it has chosen the correct type once you are redirected!</b>
-    </p>
+    <main>
+      <h2 class="status">Connecting to server...</h2>
 
-    <h4 class="last_update">Last update: Never</h4>
+      <p>
+        The server will start polling for tickets approximately 5 minutes before the tickets are due to be released.
+        There are no guarantees as this hasn't been tested. <b>It will pick the first ticket type available so check to make
+        sure it has chosen the correct type once you are redirected!</b>
+      </p>
+
+      <h4 class="last_update">Last update: Never</h4>
+    </main>
 
     <footer>
       <p>
