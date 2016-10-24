@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>HackLondon Tickets</title>
+    <script src="https://code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
+    <script type="text/javascript">
+      var updateInterval = 1000;
+      var interval;
+
+      function post(path, params) {
+        $(".status").text("GO GO GO, sending you to eventbrite form");
+        var form = document.createElement("form");
+        form.setAttribute("method", "post");
+        form.setAttribute("action", path);
+
+        for (var key in params) {
+          if (params.hasOwnProperty(key)) {
+            var hiddenField = document.createElement("input");
+            hiddenField.setAttribute("type", "hidden");
+            hiddenField.setAttribute("name", key);
+            hiddenField.setAttribute("value", params[key]);
+            form.appendChild(hiddenField);
+          }
+        }
+        document.body.appendChild(form);
+        form.submit();
+        clearInterval(interval);
+      }
+
+      function getPayload(callback) {
+        $.ajax({
+          url: "/payload",
+          success: function(data) {
+            callback(data, true);
+          },
+          error: function() {
+            callback({}, false);
+          },
+          dataType: "json"
+        });
+      }
+
+      $(function() {
+        interval = setInterval(function() {
+          getPayload(function(data, success) {
+            if(!success) {
+              $(".status").text("Payload request failed");
+              console.log("Failed to get payload from server");
+              return;
+            }
+            if(!data || !data.eid || !data.ticketName) {
+              $(".last_update").text("Last update from server at: " + (new Date().toString()))
+              return;
+            }
+            var payload = {
+              'eid': data["eid"],
+              'has_javascript': 1
+            };
+            payload[data["ticketName"]] = 1;
+            post("https://www.eventbrite.co.uk/orderstart", payload);
+          });
+        }, updateInterval);
+        $(".status").text("Polling...");
+      })
+    </script>
+  </head>
+  <body>
+    <h1>Status:</h1>
+    <h2 class="status">Connecting to server...</h2>
+    <h3 class="last_update"></h3>
+  </body>
+</html>
