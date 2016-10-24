@@ -1,0 +1,21 @@
+{
+  "name": "hackkings-eventbrite-sniper",
+  "version": "0.0.1",
+  "description": "Gets hackkings tickets from eventbrite",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "koa": "^1.2.4",
+    "koa-json": "^1.1.3",
+    "koa-router": "^5.4.0",
+    "koa-send": "^3.2.0",
+    "moment": "^2.15.2",
+    "request": "^2.75.0"
+  },
+  "engines": {
+    "node": "4.0.0"
+  },
+  "author": "Ryan Welch"
+}

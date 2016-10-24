@@ -3,13 +3,55 @@
   <head>
     <meta charset="utf-8">
     <title>HackLondon Tickets</title>
+    <style type="text/css">
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 1em auto;
+        max-width: 40em;
+        line-height: 1.6;
+        font: 1.2em serif;
+        color: #444;
+        padding:0 .62em;
+      }
+
+      header {
+        margin-bottom: 2em;
+      }
+
+      h1, h2, h3{
+        font-family: sans-serif;
+        line-height: 1.2;
+      }
+
+      a {
+        display: inline-block;
+        text-decoration: none;
+        border-bottom: 1px solid rgba(0,0,0,0.9);
+        color: #777;
+      }
+
+      footer {
+        position: absolute;
+        bottom: 0;
+        text-align: center;
+        color: #777;
+      }
+
+      footer a {
+        color: #444;
+      }
+    </style>
     <script src="https://code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.15.2/moment.min.js" integrity="sha256-lDcU9wi187tvmD2D2AvfRvhuVthZ5UxIP7Oh+Rk3yNw=" crossorigin="anonymous"></script>
     <script type="text/javascript">
       var updateInterval = 1000;
       var interval;
 
       function post(path, params) {
-        $(".status").text("GO GO GO, sending you to eventbrite form");
+        $(".status").text("TICKET FOUND... redirecting to ticket page...");
         var form = document.createElement("form");
         form.setAttribute("method", "post");
         form.setAttribute("action", path);
@@ -50,7 +92,12 @@
               return;
             }
             if(!data || !data.eid || !data.ticketName) {
-              $(".last_update").text("Last update from server at: " + (new Date().toString()))
+              $(".last_update").text("Last update: " + (moment().format("dddd, MMMM Do YYYY, h:mm:ss a")))
+              if(data.status == "waiting") {
+                $(".status").text("Waiting, starting " + data.timeLeft);
+              } else if(data.status == "polling") {
+                $(".status").text("Polling for tickets...");
+              }
               return;
             }
             var payload = {
@@ -61,13 +108,27 @@
             post("https://www.eventbrite.co.uk/orderstart", payload);
           });
         }, updateInterval);
-        $(".status").text("Polling...");
       })
     </script>
   </head>
   <body>
-    <h1>Status:</h1>
+    <header>
+      <h1>HackKings Ticket Sniper</h1>
+    </header>
     <h2 class="status">Connecting to server...</h2>
-    <h3 class="last_update"></h3>
+
+    <p>
+      The server will start polling for tickets approximately 5 minutes before the tickets are due to be released.
+      There are no guarantees as this hasn't been tested. <b>It will pick the first ticket type available so check to make
+      sure it has chosen the correct type once you are redirected!</b>
+    </p>
+
+    <h4 class="last_update">Last update: Never</h4>
+
+    <footer>
+      <p>
+        Made by <a href="https://ryanwelch.me">Ryan Welch</a>
+      </p>
+    </footer>
   </body>
 </html>

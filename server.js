@@ -8,9 +8,10 @@ const moment = require('moment')
 
 const port = 3000
 const ticketQuantity = 1
-const ticketDate = moment("2016-10-25T15:00:00Z");
-// TODO: Only update if 5 mins before ticketDate
-//moment.duration(ticketDate.diff(moment()));
+const ticketDate = moment("2016-10-25T15:00:00Z", moment.ISO_8601);
+//const ticketDate = moment("2016-10-24T18:00:00Z", moment.ISO_8601);
+const minutesBefore = 4;
+const startPoll = ticketDate.clone().subtract(minutesBefore, 'minutes');
 
 function findAll(data, s) {
 	let rx = new RegExp(s, "g");
@@ -23,17 +24,24 @@ function findAll(data, s) {
 }
 
 let payload = {
-	status: "waiting"
+	status: "waiting",
+	timeLeft: ""
 }
 let isUpdating = false;
 
 function update() {
-	//console.log("Updating...");
-	// if(not yet time) {
-	// 	isUpdating = false;
-	// 	return;
-	// }
+	let diff = startPoll.diff(moment());
+	if(diff > 0) { // Don't update yet, we haven't reached startPoll time
+		isUpdating = false;
+		//console.log("Will start updating " + moment.duration(diff).humanize(true));
+		payload = {
+			status: "waiting",
+			timeLeft: moment.duration(diff).humanize(true)
+		}
+		return;
+	}
 
+	//console.log("Updating...");
 	payload = {
 		status: "polling"
 	}
@@ -41,8 +49,8 @@ function update() {
 	request({
 	    method: 'GET',
 	    //url: 'https://www.eventbrite.co.uk/e/repair-cafe-tickets-27780488188'
-			url: 'https://www.eventbrite.co.uk/e/raspberry-pi-coding-workshop-tickets-27780640644'
-			//url: 'https://www.eventbrite.co.uk/e/hackkings-30-tickets-28376671388'
+			//url: 'https://www.eventbrite.co.uk/e/raspberry-pi-coding-workshop-tickets-27780640644'
+			url: 'https://www.eventbrite.co.uk/e/hackkings-30-tickets-28376671388'
 	}, function(err, response, body) {
 	    if (err) return console.error(err);
 
@@ -59,7 +67,9 @@ function update() {
 				|| name.indexOf("17") != -1) continue;
 				//console.log("Ticket found, updating payload for clients");
 				payload = {
+					status: "available",
 					eid: publicId[i][1],
+					remaining: quantityMatches[i][1],
 					ticketName: ticketMatches[i][1]
 				}
 				break;
@@ -81,7 +91,9 @@ app.use(function *(next){
   var start = new Date;
   yield next;
   var ms = new Date - start;
-  console.log('%s %s - %sms', this.method, this.url, ms);
+	var timestamp = start.toISOString().replace(/T/, ' ').replace(/\..+/, '');
+	if(this.url != "/payload")
+  	console.log('%s [%s]: %s %s - %sms', this.request.ip, timestamp, this.method, this.url, ms);
 }).use(json())
 	.use(router.routes())
 	.use(router.allowedMethods());
