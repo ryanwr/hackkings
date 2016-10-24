@@ -6,7 +6,7 @@ const send = require('koa-send')
 const json = require('koa-json')
 const moment = require('moment')
 
-const port = 3000
+const port = process.env.PORT || 3000
 const ticketQuantity = 1
 const ticketDate = moment("2016-10-25T15:00:00Z", moment.ISO_8601);
 //const ticketDate = moment("2016-10-24T18:00:00Z", moment.ISO_8601);
