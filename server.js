@@ -7,10 +7,12 @@ const json = require('koa-json')
 const moment = require('moment')
 
 const port = process.env.PORT || 3000
+
 const ticketQuantity = 1
 const ticketDate = moment("2016-10-25T15:00:00Z", moment.ISO_8601);
-//const ticketDate = moment("2016-10-24T18:00:00Z", moment.ISO_8601);
-const minutesBefore = 4;
+const ticketUrl = 'https://www.eventbrite.co.uk/e/hackkings-30-tickets-28376671388';
+const minutesBefore = 2;
+
 const startPoll = ticketDate.clone().subtract(minutesBefore, 'minutes');
 
 function findAll(data, s) {
@@ -41,16 +43,13 @@ function update() {
 		return;
 	}
 
-	//console.log("Updating...");
 	payload = {
 		status: "polling"
 	}
 	isUpdating = true;
 	request({
 	    method: 'GET',
-	    //url: 'https://www.eventbrite.co.uk/e/repair-cafe-tickets-27780488188'
-			//url: 'https://www.eventbrite.co.uk/e/raspberry-pi-coding-workshop-tickets-27780640644'
-			url: 'https://www.eventbrite.co.uk/e/hackkings-30-tickets-28376671388'
+			url: ticketUrl
 	}, function(err, response, body) {
 	    if (err) return console.error(err);
 
@@ -63,6 +62,7 @@ function update() {
 				let name = ticketNames[i][1].toLowerCase();
 				if(parseInt(quantityMatches[i][1]) <= 0
 				|| name.indexOf("child") != -1
+				|| name.indexOf("u18") != -1
 				|| name.indexOf("16") != -1
 				|| name.indexOf("17") != -1) continue;
 				//console.log("Ticket found, updating payload for clients");
