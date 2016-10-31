@@ -49,15 +49,157 @@
       footer a {
         color: #444;
       }
+
+      .status-container {
+        display: flex;
+        flex-flow: row nowrap;
+        align-items: center;
+      }
+
+      .status-icon {
+        width: 10px;
+        height: 10px;
+        border-radius: 100% 100%;
+        position: relative;;
+        top: 50%;
+        left: 50%;
+        -webkit-transform: translate(-50%, -50%);
+                transform: translate(-50%, -50%);
+        background: rgba(166, 166, 166, 1);
+      }
+      .pulse {
+        margin-right: 1em;
+        border-radius: 30px;
+        line-height: 30px;
+        text-align: center;
+        width: 40px;
+        height: 40px;
+        position: relative;
+      }
+      .pulse:before, .pulse:after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border-radius: 30px;
+        background: rgba(166, 166, 166, 0.2);
+        opacity: 0;
+      }
+      .pulse:before {
+        -webkit-transform: scale(1);
+                transform: scale(1);
+        -webkit-animation: pulse 3s infinite linear;
+                animation: pulse 3s infinite linear;
+      }
+      .pulse:after {
+        -webkit-animation: pulse 3s 2s infinite linear;
+                animation: pulse 3s 2s infinite linear;
+      }
+
+      @-webkit-keyframes pulse {
+        0% {
+          -webkit-transform: scale(0.6);
+                  transform: scale(0.6);
+          opacity: 0;
+        }
+        33% {
+          -webkit-transform: scale(1);
+                  transform: scale(1);
+          opacity: 1;
+        }
+        100% {
+          -webkit-transform: scale(1.4);
+                  transform: scale(1.4);
+          opacity: 0;
+        }
+      }
+
+      @keyframes pulse {
+        0% {
+          -webkit-transform: scale(0.6);
+                  transform: scale(0.6);
+          opacity: 0;
+        }
+        33% {
+          -webkit-transform: scale(1);
+                  transform: scale(1);
+          opacity: 1;
+        }
+        100% {
+          -webkit-transform: scale(1.4);
+                  transform: scale(1.4);
+          opacity: 0;
+        }
+      }
+
+      [data-status="running"] .status-icon {
+        background: rgba(127, 185, 0, 1);
+      }
+      [data-status="running"]:before, [data-status="running"]:after {
+        background: rgba(127, 185, 0, 0.2);
+      }
+      [data-status="pending"] .status-icon {
+        background: rgba(243, 156, 18, 1);
+      }
+      [data-status="pending"]:before, [data-status="pending"]:after {
+        background: rgba(243, 156, 18, 0.2);
+      }
+      [data-status="failed"] .status-icon {
+        background: rgba(192, 57, 43, 1);
+      }
+      [data-status="failed"]:before, [data-status="failed"]:after {
+        background: rgba(192, 57, 43, 0.2);
+      }
+
     </style>
     <script src="https://code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.15.2/moment.min.js" integrity="sha256-lDcU9wi187tvmD2D2AvfRvhuVthZ5UxIP7Oh+Rk3yNw=" crossorigin="anonymous"></script>
     <script type="text/javascript">
+      // Polyfill for String.format
+      if (!String.prototype.format) {
+        String.prototype.format = function() {
+          var args = arguments;
+          return this.replace(/{(\d+)}/g, function(match, number) {
+            return typeof args[number] != 'undefined'
+              ? args[number]
+              : match
+            ;
+          });
+        };
+      }
+
+      // Function to generate a mostly UUID
+      function generateUUID(){
+        var d = new Date().getTime();
+        if(window.performance && typeof window.performance.now === "function"){
+          d += performance.now(); //use high-precision timer if available
+        }
+        var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          var r = (d + Math.random()*16)%16 | 0;
+          d = Math.floor(d/16);
+          return (c=='x' ? r : (r&0x3|0x8)).toString(16);
+        });
+        return uuid;
+      }
+
+      // Constants and messages
+      var messages = {
+        "status_ticket_found": "TICKET FOUND... redirecting to ticket page...",
+        "status_request_failed": "Payload request failed",
+        "status_waiting": "Waiting, starting {0}",
+        "status_polling": "Polling for tickets...",
+        "last_update": "Last update: {0}",
+        "num_clients": "Clients: {0}"
+      }
+      var clientId = generateUUID();
       var updateInterval = 1000;
       var interval;
 
+      // Submit form payload
       function post(path, params) {
-        $(".status").text("TICKET FOUND... redirecting to ticket page...");
+        $(".status").text(messages["ticket_found"]);
         var form = document.createElement("form");
         form.setAttribute("method", "post");
         form.setAttribute("action", path);
@@ -76,9 +218,11 @@
         clearInterval(interval);
       }
 
+      // Ajax request to server
       function getPayload(callback) {
         $.ajax({
           url: "/payload",
+          data: {"id": clientId},
           success: function(data) {
             callback(data, true);
           },
@@ -89,31 +233,45 @@
         });
       }
 
+      function getPayloadCallback(data, success) {
+        // Failed to get update from server
+        if(!success || !data) {
+          $(".status").text(messages["status_request_failed"]);
+          $(".pulse").attr("data-status", "failed");
+          $(".num_clients").text(messages["num_clients"].format("Unknown"));
+          return;
+        }
+        // Check status and data
+        if(!data.eid || !data.ticketName) {
+          if(data.status == "waiting") { // Waiting to start polling
+            $(".status").text(messages["status_waiting"].format(data.timeLeft));
+            $(".pulse").attr("data-status", "pending");
+          } else if(data.status == "polling") { // Polling
+            $(".status").text(messages["status_polling"]);
+            $(".pulse").attr("data-status", "running");
+          }
+          if(data.status == "waiting" || data.status == "polling") {
+            $(".last_update").text(messages["last_update"].format(moment().format("dddd, MMMM Do YYYY, h:mm:ss a")));
+            if(data.num_clients != null) {
+              $(".num_clients").text(messages["num_clients"].format(data.num_clients));
+            }
+          }
+          return;
+        }
+        // Submit form payload
+        var payload = {
+          'eid': data["eid"],
+          'has_javascript': 1
+        };
+        payload[data["ticketName"]] = 1;
+        post("https://www.eventbrite.co.uk/orderstart", payload);
+      }
+
       $(function() {
         interval = setInterval(function() {
-          getPayload(function(data, success) {
-            if(!success) {
-              $(".status").text("Payload request failed");
-              console.log("Failed to get payload from server");
-              return;
-            }
-            if(!data || !data.eid || !data.ticketName) {
-              $(".last_update").text("Last update: " + (moment().format("dddd, MMMM Do YYYY, h:mm:ss a")))
-              if(data.status == "waiting") {
-                $(".status").text("Waiting, starting " + data.timeLeft);
-              } else if(data.status == "polling") {
-                $(".status").text("Polling for tickets...");
-              }
-              return;
-            }
-            var payload = {
-              'eid': data["eid"],
-              'has_javascript': 1
-            };
-            payload[data["ticketName"]] = 1;
-            post("https://www.eventbrite.co.uk/orderstart", payload);
-          });
+          getPayload(getPayloadCallback);
         }, updateInterval);
+        getPayload(getPayloadCallback); // Don't wait a updateInterval time to poll server for first time
       })
     </script>
   </head>
@@ -123,7 +281,13 @@
     </header>
 
     <main>
-      <h2 class="status">Connecting to server...</h2>
+      <div class="status-container">
+        <div class="pulse" data-status="connecting">
+          <div class="status-icon">
+          </div>
+        </div>
+        <h2 class="status">Connecting to server...</h2>
+      </div>
 
       <p>
         The server will start polling for tickets approximately 2 minutes before the tickets are due to be released.
@@ -131,6 +295,7 @@
       </p>
 
       <h4 class="last_update">Last update: Never</h4>
+      <h4 class="num_clients">Clients: Unknown</h4>
     </main>
 
     <footer>

@@ -25,6 +25,7 @@ function findAll(data, s) {
 	return matches;
 }
 
+let clients = {}
 let payload = {
 	status: "waiting",
 	timeLeft: ""
@@ -32,6 +33,13 @@ let payload = {
 let isUpdating = false;
 
 function update() {
+	let expireTime = Date.now() - 10 * 1000;
+	for(let client in clients) {
+		if(clients[client] < expireTime) {
+			delete clients[client];
+		}
+  }
+
 	let diff = startPoll.diff(moment());
 	if(diff > 0) { // Don't update yet, we haven't reached startPoll time
 		isUpdating = false;
@@ -82,6 +90,11 @@ router.get('/', function *(){
 })
 
 router.get('/payload', function *(){
+	var id = this.request.query.id;
+	if(id != null) {
+		clients[id] = Date.now();
+		payload.num_clients = Object.keys(clients).length;
+	}
   this.body = payload || {};
 })
 
@@ -92,7 +105,7 @@ app.use(function *(next){
   yield next;
   var ms = new Date - start;
 	var timestamp = start.toISOString().replace(/T/, ' ').replace(/\..+/, '');
-	if(this.url != "/payload")
+	if(!this.url.startsWith("/payload"))
   	console.log('%s [%s]: %s %s - %sms', this.request.ip, timestamp, this.method, this.url, ms);
 }).use(json())
 	.use(router.routes())
