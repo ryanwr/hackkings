@@ -9,7 +9,7 @@ const moment = require('moment')
 const port = process.env.PORT || 3000
 
 const ticketQuantity = 1
-const ticketDate = moment("2016-10-25T15:00:00Z", moment.ISO_8601);
+const ticketDate = moment("2016-11-02T13:00:00Z", moment.ISO_8601);
 const ticketUrl = 'https://www.eventbrite.co.uk/e/hackkings-30-tickets-28376671388';
 const minutesBefore = 2;
 
