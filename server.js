@@ -9,9 +9,9 @@ const moment = require('moment')
 const port = process.env.PORT || 3000
 
 const ticketQuantity = 1
-const ticketDate = moment("2016-11-02T13:00:00Z", moment.ISO_8601);
+const ticketDate = moment("2016-11-10T13:00:00Z", moment.ISO_8601);
 const ticketUrl = 'https://www.eventbrite.co.uk/e/hackkings-30-tickets-28376671388';
-const minutesBefore = 2;
+const minutesBefore = 3;
 
 const startPoll = ticketDate.clone().subtract(minutesBefore, 'minutes');
 
@@ -51,9 +51,12 @@ function update() {
 		return;
 	}
 
-	payload = {
-		status: "polling"
+	if(payload.status == "waiting") {
+		payload = {
+			status: "polling"
+		}
 	}
+
 	isUpdating = true;
 	request({
 	    method: 'GET',
@@ -61,7 +64,7 @@ function update() {
 	}, function(err, response, body) {
 	    if (err) return console.error(err);
 
-			let publicId = findAll(body, "public_id\":([^,]+),");
+			let publicId = findAll(body, "public_id\":([^,]+),")[0][1];
 	    let ticketMatches = findAll(body, "ticket_form_element_name\":\"([^\"]+)\"");
 			let quantityMatches = findAll(body, "quantity_remaining\":([^,]+),");
 			let ticketNames = findAll(body, "ticket_name\":\"([^\"]+)\"");
@@ -73,14 +76,18 @@ function update() {
 				|| name.indexOf("u18") != -1
 				|| name.indexOf("16") != -1
 				|| name.indexOf("17") != -1) continue;
-				//console.log("Ticket found, updating payload for clients");
+				console.log(`Ticket found, updating payload for clients, ${name} - ${quantityMatches[i][1]} - ${ticketMatches[i][1]} - ${publicId}`);
 				payload = {
 					status: "available",
-					eid: publicId[i][1],
+					eid: publicId,
 					remaining: quantityMatches[i][1],
 					ticketName: ticketMatches[i][1]
 				}
-				break;
+				return;
+			}
+			// If not back to polling
+			payload = {
+				status: "polling"
 			}
 	});
 }

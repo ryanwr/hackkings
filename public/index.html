@@ -218,11 +218,13 @@
         clearInterval(interval);
       }
 
+      var cachePrevention = 0;
+
       // Ajax request to server
       function getPayload(callback) {
         $.ajax({
           url: "/payload",
-          data: {"id": clientId},
+          data: {"id": clientId, "c": cachePrevention++},
           success: function(data) {
             callback(data, true);
           },
