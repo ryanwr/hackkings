@@ -16,80 +16,80 @@ const minutesBefore = 3;
 const startPoll = ticketDate.clone().subtract(minutesBefore, 'minutes');
 
 function findAll(data, s) {
-	let rx = new RegExp(s, "g");
-	let matches = new Array();
-	let match;
-	while ((match = rx.exec(data)) !== null) {
-		matches.push(match);
-	}
-	return matches;
+  let rx = new RegExp(s, "g");
+  let matches = new Array();
+  let match;
+  while ((match = rx.exec(data)) !== null) {
+    matches.push(match);
+  }
+  return matches;
 }
 
 let clients = {}
 let payload = {
-	status: "waiting",
-	timeLeft: ""
+  status: "waiting",
+  timeLeft: ""
 }
 let isUpdating = false;
 
 function update() {
-	let expireTime = Date.now() - 10 * 1000;
-	for(let client in clients) {
-		if(clients[client] < expireTime) {
-			delete clients[client];
-		}
+  let expireTime = Date.now() - 10 * 1000;
+  for(let client in clients) {
+    if(clients[client] < expireTime) {
+      delete clients[client];
+    }
   }
 
-	let diff = startPoll.diff(moment());
-	if(diff > 0) { // Don't update yet, we haven't reached startPoll time
-		isUpdating = false;
-		//console.log("Will start updating " + moment.duration(diff).humanize(true));
-		payload = {
-			status: "waiting",
-			timeLeft: moment.duration(diff).humanize(true)
-		}
-		return;
-	}
+  let diff = startPoll.diff(moment());
+  if(diff > 0) { // Don't update yet, we haven't reached startPoll time
+    isUpdating = false;
+    //console.log("Will start updating " + moment.duration(diff).humanize(true));
+    payload = {
+      status: "waiting",
+      timeLeft: moment.duration(diff).humanize(true)
+    }
+    return;
+  }
 
-	if(payload.status == "waiting") {
-		payload = {
-			status: "polling"
-		}
-	}
+  if(payload.status == "waiting") {
+    payload = {
+      status: "polling"
+    }
+  }
 
-	isUpdating = true;
-	request({
-	    method: 'GET',
-			url: ticketUrl
-	}, function(err, response, body) {
-	    if (err) return console.error(err);
+  isUpdating = true;
+  request({
+      method: 'GET',
+      url: ticketUrl
+  }, function(err, response, body) {
+      if (err) return console.error(err);
 
-			let publicId = findAll(body, "public_id\":([^,]+),")[0][1];
-	    let ticketMatches = findAll(body, "ticket_form_element_name\":\"([^\"]+)\"");
-			let quantityMatches = findAll(body, "quantity_remaining\":([^,]+),");
-			let ticketNames = findAll(body, "ticket_name\":\"([^\"]+)\"");
+      let publicId = findAll(body, "public_id\":([^,]+),")[0][1];
+      let ticketMatches = findAll(body, "ticket_form_element_name\":\"([^\"]+)\"");
+      let quantityMatches = findAll(body, "quantity_remaining\":([^,]+),");
+      let ticketNames = findAll(body, "ticket_name\":\"([^\"]+)\"");
 
-			for(var i = 0; i < ticketMatches.length; i++) {
-				let name = ticketNames[i][1].toLowerCase();
-				if(parseInt(quantityMatches[i][1]) <= 0
-				|| name.indexOf("child") != -1
-				|| name.indexOf("u18") != -1
-				|| name.indexOf("16") != -1
-				|| name.indexOf("17") != -1) continue;
-				console.log(`Ticket found, updating payload for clients, ${name} - ${quantityMatches[i][1]} - ${ticketMatches[i][1]} - ${publicId}`);
-				payload = {
-					status: "available",
-					eid: publicId,
-					remaining: quantityMatches[i][1],
-					ticketName: ticketMatches[i][1]
-				}
-				return;
-			}
-			// If not back to polling
-			payload = {
-				status: "polling"
-			}
-	});
+      for(var i = 0; i < ticketMatches.length; i++) {
+        let name = ticketNames[i][1].toLowerCase();
+        if(parseInt(quantityMatches[i][1]) <= 0
+        || name.indexOf("child") != -1
+        || name.indexOf("u18") != -1
+        || name.indexOf("16") != -1
+        || name.indexOf("17") != -1) continue;
+        console.log(`Ticket found, updating payload for clients, ${name} - ${quantityMatches[i][1]} - ${ticketMatches[i][1]} - ${publicId}`);
+        payload = {
+          status: "available",
+          eid: publicId,
+          remaining: quantityMatches[i][1],
+          ticketName: ticketMatches[i][1]
+        }
+        return;
+      }
+      // If not back to polling
+      payload = {
+        status: "polling"
+      }
+  });
 }
 
 router.get('/', function *(){
@@ -97,11 +97,11 @@ router.get('/', function *(){
 })
 
 router.get('/payload', function *(){
-	var id = this.request.query.id;
-	if(id != null) {
-		clients[id] = Date.now();
-		payload.num_clients = Object.keys(clients).length;
-	}
+  var id = this.request.query.id;
+  if(id != null) {
+    clients[id] = Date.now();
+    payload.num_clients = Object.keys(clients).length;
+  }
   this.body = payload || {};
 })
 
@@ -111,10 +111,10 @@ app.use(function *(next){
   var start = new Date;
   yield next;
   var ms = new Date - start;
-	var timestamp = start.toISOString().replace(/T/, ' ').replace(/\..+/, '');
-	if(!this.url.startsWith("/payload"))
-  	console.log('%s [%s]: %s %s - %sms', this.request.ip, timestamp, this.method, this.url, ms);
+  var timestamp = start.toISOString().replace(/T/, ' ').replace(/\..+/, '');
+  if(!this.url.startsWith("/payload"))
+    console.log('%s [%s]: %s %s - %sms', this.request.ip, timestamp, this.method, this.url, ms);
 }).use(json())
-	.use(router.routes())
-	.use(router.allowedMethods());
+  .use(router.routes())
+  .use(router.allowedMethods());
 app.listen(port)
