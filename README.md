@@ -8,7 +8,11 @@ When they sell out in less than 30 seconds you need some help.
 
 ## Usage
 Change the ticket url or date/time in the server.js
+
 Then start the server and go to `localhost:3000`
+
   `npm start`
+
 You may also specify a custom port
+
   `PORT=80 npm start`
